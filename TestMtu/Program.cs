@@ -2,6 +2,7 @@
 using EmbedIO.Routing;
 using EmbedIO.WebApi;
 using Microsoft.EntityFrameworkCore;
+using MTUBankBase.Auth.Models;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
@@ -13,6 +14,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
+using TestMtu;
 
 namespace starteducation
 {
@@ -25,7 +27,7 @@ namespace starteducation
             {
 
 
-                db.Users.Add(user);
+                db.UsersTable.Add(user);
                 db.SaveChanges();
 
             }
@@ -35,23 +37,28 @@ namespace starteducation
         {
             using (ApplicationContext db = new ApplicationContext())
             {
-                var res = db.Users.FirstOrDefault(res => res.phone_number == EntUserPhone);
+                var res = db.UsersTabel.FirstOrDefault(res => res.phone_number == EntUserPhone);
+                Verification.TwoFactorAuth.Enable2FA(res.username);
                 return res;
             }
 
         }
 
     }
-
+    /*
+    
     public class Checker
     {
-        public static AuthResult Check(TwoFACode)
+        public static AuthResult Check(TwoFARequest TwoFACode)
         {
-            //metod
-            return //bool
+            
+            var result = new AuthResult() { };
+            return Verification.TwoFactorAuth.VerifyOTP();
         }
     }
+    
     [Table("users")]
+    */
     internal class Program
     {
 
@@ -71,13 +78,16 @@ namespace starteducation
         [Route(HttpVerbs.Post, "/api/loginUser")]
         public async Task<AuthResult> LoginPerson([JsonData] AuthRequest EntUserPhone)
         {
+            
             return UserManager.GetUser(EntUserPhone);
         }
 
         [Route(HttpVerbs.Post, "/api/2FA")]
-        public async Task<AuthResult> TwoFAVerification([JsonData] TwoFARequest TwoFACode)
+        public async Task<bool> TwoFAVerification([JsonData] TwoFARequest TwoFACode)
         {
-            return Checker.Check(TwoFACode);
+            string x = TwoFACode.TwoFAToken;
+            string y = TwoFACode.TwoFAValue;
+            return Verification.TwoFactorAuth.VerifyOTP(username: x, userEnteredOTP: y);
         }
     }
 }
